@@ -124,6 +124,19 @@ resource "azurerm_linux_virtual_machine" "nodeodm" {
   }
   tags = merge(local.common_tags)
 }
+resource "azurerm_dev_test_global_vm_shutdown_schedule" "nodeodm" {
+  count              = var.nodeodm_servers
+  virtual_machine_id = azurerm_linux_virtual_machine.nodeodm[count.index].id
+  location           = azurerm_resource_group.rg.location
+  enabled            = true
+
+  daily_recurrence_time = "2300"
+  timezone              = "Central Standard Time"
+
+  notification_settings {
+    enabled = false
+  }
+}
 #-------------------------------
 # create cloud-init template file
 #-------------------------------
@@ -133,7 +146,7 @@ data "template_file" "cloud-init" {
 #!/bin/bash
 sudo useradd odm
 sudo apt-get update && apt-get -y install docker docker.io docker-compose 
-sudo usermod -aG sudu,docker odm
+sudo usermod -aG sudo,docker odm
 sudo rsync --archive --chown=odm:odm /home/${var.adminUser}/.ssh /home/odm
 sudo mkdir -p /home/odm/.config/rclone
 sudo mv /home/${var.adminUser}/rclone.conf /home/odm/.config/rclone
